@@ -19,6 +19,7 @@
   "plugins": ["react"],
   "parser": "babel-eslint",
   "rules": {
-    "react/destructuring-assignment": "off"
+    "react/destructuring-assignment": "off",
+    "no-console": "off"
   }
 }
