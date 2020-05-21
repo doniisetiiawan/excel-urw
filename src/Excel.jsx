@@ -109,13 +109,27 @@ class Excel extends Component {
   );
 
   _renderToolbar = () => (
-    <button
-      type="button"
-      onClick={this._toggleSearch}
-      className="toolbar"
-    >
-      search
-    </button>
+    <div>
+      <button
+        type="button"
+        onClick={this._toggleSearch}
+        className="toolbar"
+      >
+        search
+      </button>
+      <a
+        onClick={(ev) => this._download(ev, 'json')}
+        href="data.json"
+      >
+        Export JSON
+      </a>
+      <a
+        onClick={(ev) => this._download(ev, 'csv')}
+        href="data.csv"
+      >
+        Export CSV
+      </a>
+    </div>
   );
 
   _toggleSearch = () => {
@@ -195,6 +209,31 @@ class Excel extends Component {
       ),
     );
     this.setState(newState);
+  };
+
+  _download = (ev, format) => {
+    const contents = format === 'json'
+      ? JSON.stringify(this.state.data)
+      : this.state.data.reduce(
+        (result, row) => `${
+          result
+                + row.reduce(
+                  (rowresult, cell, idx) => `${rowresult}"${cell.replace(
+                    /"/g,
+                    '""',
+                  )}"${idx < row.length - 1 ? ',' : ''}`,
+                  '',
+                )
+        }\n`,
+        '',
+      );
+
+    const URL = window.URL || window.webkitURL;
+    const blob = new Blob([contents], {
+      type: `text/${format}`,
+    });
+    ev.target.href = URL.createObjectURL(blob);
+    ev.target.download = `data.${format}`;
   };
 
   render() {
