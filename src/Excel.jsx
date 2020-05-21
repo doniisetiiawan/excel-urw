@@ -12,7 +12,9 @@ class Excel extends Component {
       sortby: null,
       descending: false,
       edit: null,
+      search: false,
     };
+    this._preSearchData = null;
   }
 
   _sort = (e) => {
@@ -54,41 +56,114 @@ class Excel extends Component {
     });
   };
 
+  _renderTable = () => (
+    <table>
+      <thead onClick={this._sort}>
+        <tr>
+          {this.props.headers.map((title, idx) => {
+            if (this.state.sortby === idx) {
+              title += this.state.descending
+                ? ' \u2191'
+                : ' \u2193';
+            }
+            return <th key={title}>{title}</th>;
+          })}
+        </tr>
+      </thead>
+      <tbody onDoubleClick={this._showEditor}>
+        {this._renderSearch()}
+        {this.state.data.map((row, rowidx) => (
+          <tr key={rowidx}>
+            {row.map((cell, idx) => {
+              let content = cell;
+              const { edit } = this.state;
+
+              if (
+                edit
+                && edit.row === rowidx
+                && edit.cell === idx
+              ) {
+                content = (
+                  <form onSubmit={this._save}>
+                    <input
+                      type="text"
+                      name="name"
+                      defaultValue={cell}
+                    />
+                  </form>
+                );
+              }
+
+              return (
+                <td key={idx} data-row={rowidx}>
+                  {content}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  _renderToolbar = () => (
+    <button
+      type="button"
+      onClick={this._toggleSearch}
+      className="toolbar"
+    >
+      search
+    </button>
+  );
+
+  _toggleSearch = () => {
+    if (this.state.search) {
+      this.setState({
+        data: this._preSearchData,
+        search: false,
+      });
+      this._preSearchData = null;
+    } else {
+      this._preSearchData = this.state.data;
+      this.setState({
+        search: true,
+      });
+    }
+  };
+
+  _renderSearch = () => {
+    if (!this.state.search) {
+      return null;
+    }
+    return (
+      <tr onChange={this._search}>
+        {this.props.headers.map((_ignore, idx) => (
+          <td key={idx}>
+            <input type="text" data-idx={idx} />
+          </td>
+        ))}
+      </tr>
+    );
+  };
+
+  _search = (e) => {
+    const needle = e.target.value.toLowerCase();
+    if (!needle) {
+      this.setState({ data: this._preSearchData });
+    }
+    const { idx } = e.target.dataset;
+    const searchdata = this._preSearchData.filter(
+      (row) => row[idx].toString().toLowerCase().indexOf(needle)
+        > -1,
+    );
+    this.setState({ data: searchdata });
+  };
+
   render() {
     return (
       <div>
-        <table>
-          <thead onClick={this._sort}>
-          <tr>
-            {this.props.headers.map((title, idx) => {
-              if (this.state.sortby === idx) {
-                title += this.state.descending ? ' \u2191' : ' \u2193';
-              }
-              return <th key={title}>{title}</th>;
-            })}
-          </tr>
-          </thead>
-          <tbody onDoubleClick={this._showEditor}>
-          {this.state.data.map((row, rowidx) => (
-            <tr key={rowidx}>
-              {row.map((cell, idx) => {
-                let content = cell;
-                const { edit } = this.state;
-
-                if (edit && edit.row === rowidx && edit.cell === idx) {
-                  content = (
-                    <form onSubmit={this._save}>
-                      <input type="text" name="name" defaultValue={cell} />
-                    </form>
-                  );
-                }
-
-                return <td key={idx} data-row={rowidx}>{content}</td>;
-              })}
-            </tr>
-          ))}
-          </tbody>
-        </table>
+        {this._renderToolbar()}
+        {this._renderTable()}
       </div>
     );
   }
