@@ -14,6 +14,8 @@ class Excel extends Component {
       edit: null,
       search: false,
     };
+
+    this._log = [];
     this._preSearchData = null;
   }
 
@@ -29,7 +31,7 @@ class Excel extends Component {
       : a[column] > b[column]
         ? 1
         : -1));
-    this.setState({
+    this._logSetState({
       data,
       sortby: column,
       descending,
@@ -37,7 +39,7 @@ class Excel extends Component {
   };
 
   _showEditor = (e) => {
-    this.setState({
+    this._logSetState({
       edit: {
         row: parseInt(e.target.dataset.row, 10),
         cell: e.target.cellIndex,
@@ -50,7 +52,7 @@ class Excel extends Component {
     const input = e.target.firstChild;
     const data = this.state.data.slice();
     data[this.state.edit.row][this.state.edit.cell] = input.value;
-    this.setState({
+    this._logSetState({
       edit: null,
       data,
     });
@@ -118,14 +120,14 @@ class Excel extends Component {
 
   _toggleSearch = () => {
     if (this.state.search) {
-      this.setState({
+      this._logSetState({
         data: this._preSearchData,
         search: false,
       });
       this._preSearchData = null;
     } else {
       this._preSearchData = this.state.data;
-      this.setState({
+      this._logSetState({
         search: true,
       });
     }
@@ -149,14 +151,50 @@ class Excel extends Component {
   _search = (e) => {
     const needle = e.target.value.toLowerCase();
     if (!needle) {
-      this.setState({ data: this._preSearchData });
+      this._logSetState({ data: this._preSearchData });
     }
     const { idx } = e.target.dataset;
     const searchdata = this._preSearchData.filter(
       (row) => row[idx].toString().toLowerCase().indexOf(needle)
         > -1,
     );
-    this.setState({ data: searchdata });
+    this._logSetState({ data: searchdata });
+  };
+
+  componentDidMount = () => {
+    document.onkeydown = (e) => {
+      if (e.altKey && e.shiftKey && e.keyCode === 82) {
+        // ALT+SHIFT+R(eplay)
+        this._replay();
+      }
+    };
+  };
+
+  _replay = () => {
+    if (this._log.length === 0) {
+      console.warn('No state to replay yet');
+    }
+    let idx = -1;
+    const interval = setInterval(() => {
+      idx++;
+      if (idx === this._log.length - 1) {
+        // the end
+        clearInterval(interval);
+      }
+      this.setState(this._log[idx]);
+    }, 1000);
+  };
+
+  _logSetState = (newState) => {
+    // remember the old state in a clone
+    this._log.push(
+      JSON.parse(
+        JSON.stringify(
+          this._log.length === 0 ? this.state : newState,
+        ),
+      ),
+    );
+    this.setState(newState);
   };
 
   render() {
